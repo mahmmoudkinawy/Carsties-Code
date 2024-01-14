@@ -1,6 +1,7 @@
 ﻿using MongoDB.Driver;
 using MongoDB.Entities;
 using SearchService.Models;
+using System.Text.Json;
 
 namespace SearchService.Data;
 public class DbInitializer
@@ -12,9 +13,21 @@ public class DbInitializer
                 app.Configuration.GetConnectionString("MongoDbConnection")));
 
         await DB.Index<Item>()
-            .Key(x => x.Make, KeyType.Text)
-            .Key(x => x.Model, KeyType.Text)
-            .Key(x => x.Color, KeyType.Text)
+            .Key(i => i.Make, KeyType.Text)
+            .Key(i => i.Model, KeyType.Text)
+            .Key(i => i.Color, KeyType.Text)
             .CreateAsync();
+
+        if (await DB.CountAsync<Item>() == 0)
+        {
+            var auctions = await File.ReadAllTextAsync("Data/auctions.json");
+
+            var items = JsonSerializer.Deserialize<IReadOnlyList<Item>>(auctions, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
+
+            await items.SaveAsync();
+        }
     }
 }

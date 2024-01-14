@@ -1,4 +1,10 @@
 services:
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    ports:
+      - 5672:5672
+      - 15672:15672
+
   postgres:
     image: postgres
     environment:
@@ -18,12 +24,61 @@ services:
     volumes:
       - /var/lib/mongodb/data
 
-  rabbitmq:
-    image: rabbitmq:3-management-alpine
+  auction-svc:  
+    image: kino2001/auction-svc:latest
+    build:
+      context: .
+      dockerfile: src/AuctionService/Dockerfile
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+      - RabbitMq__Host=rabbitmq
+      - ConnectionStrings__DefaultConnection=Server=postgres; User Id=postgres; Password=postgrespw; Database=auctions
+      - IdentityServiceUrl=http://identity-svc
     ports:
-      - 5672:5672
-      - 15672:15672
+      - 7001:80
+    depends_on:
+      - rabbitmq
+      - postgres
+
+  search-svc:  
+    image: kino2001/search-svc:latest
+    build:
+      context: .
+      dockerfile: src/SearchService/Dockerfile
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+      - RabbitMq__Host=rabbitmq
+      - ConnectionStrings__MongoDbConnection=mongodb://root:mongodbpw@mongodb:27017
+      - AuctionServiceUrl=http://auction-svc
+    ports:
+      - 7002:80
+    depends_on:
+      - mongodb
+      - rabbitmq
+
+  identity-svc:  
+    image: kino2001/identity-svc:latest
+    build:
+      context: .
+      dockerfile: src/IdentityService/Dockerfile
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Docker
+      - ASPNETCORE_URLS=http://+:80
+      - ConnectionStrings__DefaultConnection=Server=postgres:5432; User Id=postgres; Password=postgrespw; Database=identity
+    ports:
+      - 5000:80
+    depends_on:
+      - postgres
       
-# volumes:
-#   pgdata:
-#   mongodata:
+  gateway-svc:  
+    image: kino2001/gateway-svc:latest
+    build:
+      context: .
+      dockerfile: src/GatewayService/Dockerfile
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Docker
+      - ASPNETCORE_URLS=http://+:80
+    ports:
+      - 6001:80
