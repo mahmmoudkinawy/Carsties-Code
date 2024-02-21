@@ -24,7 +24,7 @@ services:
     volumes:
       - /var/lib/mongodb/data
 
-  auction-svc:  
+  auction-svc:
     image: kino2001/auction-svc:latest
     build:
       context: .
@@ -41,7 +41,7 @@ services:
       - rabbitmq
       - postgres
 
-  search-svc:  
+  search-svc:
     image: kino2001/search-svc:latest
     build:
       context: .
@@ -58,7 +58,7 @@ services:
       - mongodb
       - rabbitmq
 
-  identity-svc:  
+  identity-svc:
     image: kino2001/identity-svc:latest
     build:
       context: .
@@ -71,8 +71,8 @@ services:
       - 5000:80
     depends_on:
       - postgres
-      
-  gateway-svc:  
+
+  gateway-svc:
     image: kino2001/gateway-svc:latest
     build:
       context: .
