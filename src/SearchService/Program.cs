@@ -62,7 +62,9 @@ app.Lifetime.ApplicationStarted.Register(async () =>
     }
 });
 
-app.Run();
+app
+
+    .Run();
 
 static IAsyncPolicy<HttpResponseMessage> GetPolicy()
     => HttpPolicyExtensions

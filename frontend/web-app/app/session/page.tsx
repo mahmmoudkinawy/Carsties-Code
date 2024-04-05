@@ -1,7 +1,7 @@
 import React from 'react';
 import { getSession, getTokenWorkaround } from '../actions/authActions';
 import Heading from '../components/Heading';
-import AuthTest from './authText';
+import AuthTest from './AuthText';
 
 export default async function Session() {
   const session = await getSession();
