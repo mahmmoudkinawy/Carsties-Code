@@ -1,3 +1,9 @@
+networks:
+  custom:
+    ipam:
+      config:
+        - subnet: 10.5.0.0/16
+
 services:
   rabbitmq:
     image: rabbitmq:3-management-alpine
@@ -13,6 +19,8 @@ services:
       - 5432:5432
     volumes:
       - /var/lib/postgresql/data
+    networks:
+      custom:
 
   mongodb:
     image: mongo
@@ -23,6 +31,8 @@ services:
       - 27017:27017
     volumes:
       - /var/lib/mongodb/data
+    networks:
+      custom:
 
   auction-svc:
     image: kino2001/auction-svc:latest
@@ -46,6 +56,8 @@ services:
     depends_on:
       - rabbitmq
       - postgres
+    networks:
+      custom:
 
   search-svc:
     image: kino2001/search-svc:latest
@@ -63,6 +75,8 @@ services:
     depends_on:
       - mongodb
       - rabbitmq
+    networks:
+      custom:
 
   identity-svc:
     image: kino2001/identity-svc:latest
@@ -72,11 +86,14 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Docker
       - ASPNETCORE_URLS=http://+:80
-      - ConnectionStrings__DefaultConnection=Server=postgres; User Id=postgres; Password=postgrespw; Database=identity
-    ports:
-      - 5000:80
+      - ConnectionStrings__DefaultConnection=Server=postgres; User Id=postgres; Password=postgrespw; Database=
+      - VIRTUAL_HOST=id.carsties.com
+      - ClientApp=http://app.carsties.com
     depends_on:
       - postgres
+    networks:
+      custom:
+        ipv4_address: 10.5.0.200
 
   gateway-svc:
     image: kino2001/gateway-svc:latest
@@ -86,8 +103,10 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Docker
       - ASPNETCORE_URLS=http://+:80
-    ports:
-      - 6001:80
+      - VIRTUAL_HOST=api.carsties.com
+      - ClientApp=https://app.carsties.com
+    networks:
+      custom:
 
   bid-svc:
     image: kino2001/bid-svc:latest
@@ -106,6 +125,8 @@ services:
     depends_on:
       - mongodb
       - rabbitmq
+    networks:
+      custom:
 
   notify-svc:
     image: kino2001/notify-svc:latest
@@ -120,6 +141,8 @@ services:
       - 7004:80
     depends_on:
       - rabbitmq
+    networks:
+      custom:
 
   web-app:
     image: kino2001/web-app
@@ -128,11 +151,27 @@ services:
       dockerfile: frontend/web-app/Dockerfile
     volumes:
       - /var/lib/web/data
-    ports:
-      - 3000:3000
+    extra_hosts:
+      - id.carsties.com:10.5.0.200
     environment:
       - NEXTAUTH_SECRET=somethingreallyreallysecret
-      - NEXTAUTH_URL=http://web-app
+      - NEXTAUTH_URL=http://app.carsties.com
+      - NEXTAUTH_URL_INTERNAL=http://web-app:3000
       - API_URL=http://gateway-svc/
-      - ID_URL=http://identity-svc
+      - ID_URL=http://id.carsties.com
       - NEXT_PUBLIC_NOTIFY_URL=http://gateway-svc/notifications
+      - VIRTUAL_HOST=app.carsties.com
+      - VIRTUAL_PORT=3000
+    networks:
+      custom:
+
+  nginx-proxy:
+    image: nginxproxy/nginx-proxy
+    ports:
+      - 80:80
+      - 443:443
+    networks:
+      custom:
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - ./devcerts:/etc/nginx/certs
