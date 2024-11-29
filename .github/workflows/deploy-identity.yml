@@ -1,11 +1,11 @@
 name: deploy-identity
 
 on:
-  workflow_dispatch:
   push:
     branches: ['master']
     paths:
       - 'src/IdentityService/**'
+  workflow_dispatch:
 
 jobs:
   build:
